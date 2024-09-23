@@ -105,8 +105,8 @@ def scientist_by_id(id):
         if scientist:
             db.session.delete(scientist)
             db.session.commit()
-            response = make_response('', 204)  # Create an empty response
-            response.headers['Content-Type'] = 'application/json'  # Set content type
+            response = make_response('', 204)  
+            response.headers['Content-Type'] = 'application/json'  
             return response
 
         else:
