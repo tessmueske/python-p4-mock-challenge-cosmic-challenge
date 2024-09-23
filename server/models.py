@@ -25,36 +25,86 @@ class Planet(db.Model, SerializerMixin):
     distance_from_earth = db.Column(db.Integer)
     nearest_star = db.Column(db.String)
 
-    # Add relationship
+    missions = db.relationship('Mission', back_populates="planet", cascade='all, delete-orphan')
 
-    # Add serialization rules
+    serialize_rules = ('-missions.planet',)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'distance_from_earth': self.distance_from_earth,
+            'nearest_star': self.nearest_star
+        }
 
 class Scientist(db.Model, SerializerMixin):
     __tablename__ = 'scientists'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    field_of_study = db.Column(db.String)
+    name = db.Column(db.String, nullable=False)
+    field_of_study = db.Column(db.String, nullable=False)
 
-    # Add relationship
+    missions = db.relationship('Mission', back_populates="scientist", cascade='all, delete-orphan')
 
-    # Add serialization rules
+    serialize_rules = ('-missions.scientist',)
 
-    # Add validation
+    @validates('name')
+    def validate_name(self, key, name):
+        if name is None or name == '':
+            raise ValueError("Name cannot be None or empty.")
+        return name
 
+    @validates('field_of_study')
+    def validate_field_of_study(self, key, field_of_study):
+        if field_of_study is None or field_of_study == '':
+            raise ValueError("Field of study cannot be None or empty.")
+        return field_of_study
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'field_of_study': self.field_of_study
+        }
 
 class Mission(db.Model, SerializerMixin):
     __tablename__ = 'missions'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    name = db.Column(db.String, nullable=False)
 
-    # Add relationships
+    scientist_id = db.Column(db.Integer, db.ForeignKey('scientists.id'), nullable=False)
+    planet_id = db.Column(db.Integer, db.ForeignKey('planets.id'), nullable=False)
 
-    # Add serialization rules
+    scientist = db.relationship('Scientist', back_populates="missions")
+    planet = db.relationship('Planet', back_populates="missions")
 
-    # Add validation
+    serialize_rules = ('-scientist.missions', '-planet.missions')
 
+    @validates('name')
+    def validate_name(self, key, name):
+        if name is None or name == '':
+            raise ValueError("Name cannot be None or empty.")
+        return name
 
-# add any models you may need.
+    @validates('scientist_id')
+    def validate_scientist_id(self, key, scientist_id):
+        if scientist_id is None:
+            raise ValueError("Scientist ID cannot be None.")
+        return scientist_id
+
+    @validates('planet_id')
+    def validate_planet_id(self, key, planet_id):
+        if planet_id is None:
+            raise ValueError("Planet ID cannot be None.")
+        return planet_id
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'scientist_id': self.scientist_id,
+            'planet_id': self.planet_id,
+            'scientist': self.scientist.to_dict(),
+            'planet': self.planet.to_dict()
+        }
